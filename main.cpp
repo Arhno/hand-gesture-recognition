@@ -83,7 +83,7 @@ int main(int argc, char* argv[]){
     vc >> img ;
     cv::Mat subImg = img(cv::Range(0,h), cv::Range(0,w));
     cv::flip(subImg, subImg, 1);
-    cv::Mat binimg(subImg.size(), CV_8UC1, 255);
+    cv::Mat binimg(subImg.size(), CV_8UC1, 0);
 
     Region r;
     cv::setMouseCallback("track", onMouse, &r);
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]){
         vc >> img ;
         subImg = img(cv::Range(0,h), cv::Range(0,w));
         cv::flip(subImg, subImg, 1);
-        binimg = cv::Mat(subImg.size(), CV_8UC1, 255);
+        binimg = cv::Mat(subImg.size(), CV_8UC1, 0);
 
         if(!r.isSelecting){
             cv::Mat YCrCb;
