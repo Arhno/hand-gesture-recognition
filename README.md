@@ -22,6 +22,6 @@ To select a target, raise your hand and select (with the mouse) a recangle INSID
 You need to have both opencv and boost (graph) installed.
 Then 
 ```
-g++ -std=c++11 -o testGngT main.cpp `pkg-config --cflags --libs opencv`;
+g++ -std=c++11 -o testGngT main.cpp `pkg-config --cflags --libs opencv`
 ```
 Should do the trick.
