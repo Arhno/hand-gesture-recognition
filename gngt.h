@@ -16,12 +16,14 @@ enum edge_age_t { edge_age };
 enum vertex_error_t { vertex_error };
 enum vertex_pos_t { vertex_pos };
 enum vertex_win_t { vertex_win };
+enum vertex_finger_t { vertex_finger };
 
 namespace boost {
     BOOST_INSTALL_PROPERTY(edge, age);
     BOOST_INSTALL_PROPERTY(vertex, error);
     BOOST_INSTALL_PROPERTY(vertex, pos);
     BOOST_INSTALL_PROPERTY(vertex, win);
+    BOOST_INSTALL_PROPERTY(vertex, finger);
 }
 
 class Gngt
@@ -31,7 +33,8 @@ public:
     typedef boost::property<edge_age_t, int> EdgeProperties;
     typedef boost::property<vertex_error_t, float,
                 boost::property<vertex_pos_t, std::pair<float, float>,
-                    boost::property<vertex_win_t, bool> > > VertexProperties;
+                    boost::property<vertex_win_t, bool,
+                        boost::property<vertex_finger_t, bool> > > > VertexProperties;
 
 /*
     struct EdgeProperties {
@@ -52,11 +55,13 @@ public:
     typedef boost::property_map<Graph, vertex_error_t>::type error_map_t;
     typedef boost::property_map<Graph, vertex_pos_t>::type pos_map_t;
     typedef boost::property_map<Graph, vertex_win_t>::type win_map_t;
+    typedef boost::property_map<Graph, vertex_finger_t>::type finger_map_t;
 
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
     typedef boost::graph_traits<Graph>::edge_iterator edge_iter;
     typedef boost::graph_traits<Graph>::adjacency_iterator adjacency_iterator;
     typedef boost::graph_traits<Graph>::out_edge_iterator out_edge_iterator;
+
     typedef boost::graph_traits<Graph>::vertex_descriptor vertex_descriptor;
     typedef boost::graph_traits<Graph>::edge_descriptor edge_descriptor;
 
@@ -68,7 +73,7 @@ public:
     {}
 
     template<typename Iterator>
-    void epoch(Iterator begin, Iterator end){
+    void epoch(Iterator begin, Iterator end, bool add_node = true){
         // Retrieve the property map used in the method
         age_map_t age_map = boost::get(edge_age, m_graph);
         win_map_t win_map = boost::get(vertex_win, m_graph);
@@ -143,70 +148,72 @@ public:
         }
         mean /= boost::num_vertices(m_graph);
 
-        // Adapt the number of vertices to get closer to the target
-        if(mean < m_t){
-            // to much accuracy, remove the vertex with the least error
-            boost::clear_vertex(min_ver, m_graph);
-            boost::remove_vertex(min_ver, m_graph);
-        } else {
-            // not enough accuracy, add a vertex where needed
-            max = 0;
-            vertex_descriptor max_neighbor;
-            std::pair<adjacency_iterator, adjacency_iterator> vp;
-            //std::cout << "max: " << pos_map[max_ver].first << ", " << pos_map[max_ver].second << std::endl;
-            bool neighborFound = false;
-            for (vp = boost::adjacent_vertices(max_ver, m_graph); vp.first != vp.second; ++vp.first){
-                //std::cout << "5.3 " << std::endl;
-                float error = error_map[*vp.first];
-                //std::cout << "5.4 " << pos_map[*vp.first].first << " " << pos_map[*vp.first].second << std::endl;
-                if(error > max){
-                    max = error;
-                    //std::cout << "neighbor found" << std::endl;
-                    neighborFound = true;
-                    max_neighbor = *vp.first;
+        if(add_node){
+            // Adapt the number of vertices to get closer to the target
+            if(mean < m_t){
+                // to much accuracy, remove the vertex with the least error
+                boost::clear_vertex(min_ver, m_graph);
+                boost::remove_vertex(min_ver, m_graph);
+            } else {
+                // not enough accuracy, add a vertex where needed
+                max = 0;
+                vertex_descriptor max_neighbor;
+                std::pair<adjacency_iterator, adjacency_iterator> vp;
+                //std::cout << "max: " << pos_map[max_ver].first << ", " << pos_map[max_ver].second << std::endl;
+                bool neighborFound = false;
+                for (vp = boost::adjacent_vertices(max_ver, m_graph); vp.first != vp.second; ++vp.first){
+                    //std::cout << "5.3 " << std::endl;
+                    float error = error_map[*vp.first];
+                    //std::cout << "5.4 " << pos_map[*vp.first].first << " " << pos_map[*vp.first].second << std::endl;
+                    if(error > max){
+                        max = error;
+                        //std::cout << "neighbor found" << std::endl;
+                        neighborFound = true;
+                        max_neighbor = *vp.first;
+                    }
                 }
-            }
 
-            if(neighborFound){
-                //std::cout << "neighbor pos (" << max_neighbor << "): " << pos_map[max_neighbor].first << " " << pos_map[max_neighbor].second << std::endl;
-
-
-                //std::cout << "6" << std::endl;
-                edge_descriptor edge_to_delete;
-                bool edge_to_delete_exist;
-                boost::tie(edge_to_delete, edge_to_delete_exist) = boost::edge(max_ver, max_neighbor, m_graph);
-                if(edge_to_delete_exist)
-                    boost::remove_edge(max_ver, max_neighbor, m_graph);
-
-                //std::cout << "neighbor pos 2 (" << max_neighbor << "): " << pos_map[max_neighbor].first << " " << pos_map[max_neighbor].second << std::endl;
+                if(neighborFound){
+                    //std::cout << "neighbor pos (" << max_neighbor << "): " << pos_map[max_neighbor].first << " " << pos_map[max_neighbor].second << std::endl;
 
 
-                //std::cout << "7" << std::endl;
-                float x1, x2, y1, y2;
-                boost::tie(x1,y1) = pos_map[max_ver];
-                boost::tie(x2,y2) = pos_map[max_neighbor];
+                    //std::cout << "6" << std::endl;
+                    edge_descriptor edge_to_delete;
+                    bool edge_to_delete_exist;
+                    boost::tie(edge_to_delete, edge_to_delete_exist) = boost::edge(max_ver, max_neighbor, m_graph);
+                    if(edge_to_delete_exist)
+                        boost::remove_edge(max_ver, max_neighbor, m_graph);
 
-                //std::cout << "8: " << x1 << " " << y1 << " " << x2 << " " << y2 << std::endl;
-                vertex_descriptor vd = boost::add_vertex(m_graph);
-                error_map[vd] = 0;
-                win_map[vd] = false;
-                pos_map[vd] = std::make_pair((x1+x2)/2, (y1+y2)/2);
+                    //std::cout << "neighbor pos 2 (" << max_neighbor << "): " << pos_map[max_neighbor].first << " " << pos_map[max_neighbor].second << std::endl;
 
-                //std::cout << "9" << std::endl;
-                edge_descriptor ed;
-                //std::cout << "9'" << std::endl;
-                bool exist;
-                //std::cout << "9''" << std::endl;
-                boost::tie(ed, exist) = boost::add_edge(max_ver, vd, m_graph);
-                //std::cout << "9'''" << std::endl;
-                if(exist)
-                    age_map[ed] = 0;
-                //std::cout << "9''''" << std::endl;
-                boost::tie(ed, exist) = boost::add_edge(max_neighbor, vd, m_graph);
-                //std::cout << "9'''''" << std::endl;
-                if(exist)
-                    age_map[ed] = 0;
-                //std::cout << "10" << std::endl;
+
+                    //std::cout << "7" << std::endl;
+                    float x1, x2, y1, y2;
+                    boost::tie(x1,y1) = pos_map[max_ver];
+                    boost::tie(x2,y2) = pos_map[max_neighbor];
+
+                    //std::cout << "8: " << x1 << " " << y1 << " " << x2 << " " << y2 << std::endl;
+                    vertex_descriptor vd = boost::add_vertex(m_graph);
+                    error_map[vd] = 0;
+                    win_map[vd] = false;
+                    pos_map[vd] = std::make_pair((x1+x2)/2, (y1+y2)/2);
+
+                    //std::cout << "9" << std::endl;
+                    edge_descriptor ed;
+                    //std::cout << "9'" << std::endl;
+                    bool exist;
+                    //std::cout << "9''" << std::endl;
+                    boost::tie(ed, exist) = boost::add_edge(max_ver, vd, m_graph);
+                    //std::cout << "9'''" << std::endl;
+                    if(exist)
+                        age_map[ed] = 0;
+                    //std::cout << "9''''" << std::endl;
+                    boost::tie(ed, exist) = boost::add_edge(max_neighbor, vd, m_graph);
+                    //std::cout << "9'''''" << std::endl;
+                    if(exist)
+                        age_map[ed] = 0;
+                    //std::cout << "10" << std::endl;
+                }
             }
         }
     }
@@ -218,6 +225,7 @@ public:
     void draw(cv::Mat &img){
         // Retrieve the property map used in the method
         pos_map_t pos_map = boost::get(vertex_pos, m_graph);
+        finger_map_t finger_map = boost::get(vertex_finger, m_graph);
 
         std::pair<edge_iter, edge_iter> ep;
         for(ep = boost::edges(m_graph); ep.first != ep.second ; ++ep.first){
@@ -232,12 +240,29 @@ public:
 
         std::pair<vertex_iter, vertex_iter> vp;
         for (vp = boost::vertices(m_graph); vp.first != vp.second; ++vp.first){
+            cv::Scalar color = cv::Scalar(255, 180, 0);
+            if(boost::out_degree(*vp.first, m_graph) < 4){
+                bool next_to_palm = false;
+                std::pair<adjacency_iterator, adjacency_iterator> neighboors;
+                for (neighboors = boost::adjacent_vertices(*vp.first, m_graph); neighboors.first != neighboors.second; ++neighboors.first){
+                    if(boost::out_degree(*neighboors.first, m_graph) >= 4){
+                        next_to_palm = true;
+                        break;
+                    }
+                }
+                if(!next_to_palm)
+                    color = cv::Scalar(0,0,255);
+            }
+
+//            if(finger_map[*vp.first])
+//                color = cv::Scalar(0,0,255);
+
             cv::circle(img,
                        cv::Point(pos_map[*vp.first].first, pos_map[*vp.first].second),
                        5, cv::Scalar(150, 100, 0), -1);
             cv::circle(img,
                        cv::Point(pos_map[*vp.first].first, pos_map[*vp.first].second),
-                       3, cv::Scalar(255, 180, 0), -1);
+                       3, color, -1);
         }
     }
 
