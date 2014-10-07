@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include "gngt.h"
+#include "tracking.h"
 
 struct Region {
     bool isSelecting;
@@ -47,27 +47,12 @@ void targetCallback(int newT, void* userdata){
 
 int main(int argc, char* argv[]){
 
-    int target = 100;
-    float alpha1 = 0.05;
-    float alpha2 = 0.0075;
-    int age = 30;
-
-    if(argc > 4){
-        target = atof(argv[1]);
-        alpha1 = atof(argv[2]);
-        alpha2 = atof(argv[3]);
-        age = atoi(argv[4]);
+    std::string paramFileName = "param.conf";
+    if(argc > 1){
+        paramFileName = std::string(argv[1]);
     }
 
-    Gngt mesh(target, alpha1, alpha2, age);
-
-    int nb_sample = 4000;
-    int nb_epoch = 10;
-
-    cv::namedWindow("Parameters", CV_WINDOW_NORMAL);
-    cv::createTrackbar("Target", "Parameters", &target, 200, targetCallback, &mesh);
-    cv::createTrackbar("Number of epochs", "Parameters", &nb_epoch, 10);
-    cv::createTrackbar("Number of samples per epoch", "Parameters", &nb_sample, 10000);
+    Tracker tracker(paramFileName);
 
     cv::namedWindow("track", CV_WINDOW_NORMAL);
 
@@ -97,18 +82,7 @@ int main(int argc, char* argv[]){
     float Cbranges[] = { 0, 256 };
     const float* ranges[] = { Crranges, Cbranges };
     int channels[] = {1, 2};
-
-//    int Crbins = 32, Cbbins = 32;
-//    int histSize[] = {Crbins, Cbbins};
-//    float Crranges[] = { 0, 180 };
-//    float Cbranges[] = { 0, 256 };
-//    const float* ranges[] = { Crranges, Cbranges };
-//    int channels[] = {0, 1};
     // --------------------
-
-    bool allow_node_creation = true;
-    //int nb_frame = 0;
-
 
     while(cv::waitKey(5) != 'q'){
         vc >> img ;
@@ -123,24 +97,6 @@ int main(int argc, char* argv[]){
             if(!r.stopSelecting){
                 if(r.hist != nullptr){
                     samples.clear();
-//                    for(int i=0 ; i<YCrCb.rows ; ++i){
-//                        for(int j=0 ; j<YCrCb.cols ; ++j){
-//                            //std::cout << (int) YCrCb.at<cv::Vec3b>(i,j)[1] << " " << (int) YCrCb.at<cv::Vec3b>(i,j)[2] << std::endl ;
-//                            int Y = (int) YCrCb.at<cv::Vec3b>(i,j)[0];
-//                            if(Y < minY || Y > maxY)
-//                                continue;
-//                            int Cr = (int) YCrCb.at<cv::Vec3b>(i,j)[1];
-//                            int Cb = (int) YCrCb.at<cv::Vec3b>(i,j)[2];
-//                            if(Cr <= maxCr &&
-//                               Cr >= minCr &&
-//                               Cb <= maxCb &&
-//                               Cb >= minCb)
-//                            {
-//                                samples.push_back(std::make_pair(float(j),float(i)));
-//                                binimg.at<unsigned char>(i,j) = 0 ;
-//                            }
-//                        }
-//                    }
 
                     cv::calcBackProject(&YCrCb, 1, channels, *(r.hist), binimg,
                                         ranges);
@@ -156,20 +112,8 @@ int main(int argc, char* argv[]){
                         }
                     }
 
-                    nb_sample = samples.size()/50 ;
-                    //std::cout << nb_sample << std::endl ;
-                    //if(samples.size() > nb_sample){
-                    if(nb_sample > 200){
-                        for(int i=0 ; i<nb_epoch ; ++i){
-                            std::random_shuffle(samples.begin(), samples.end());
-                            //std::cout << "new epoch - " << i << std::endl;
-                            mesh.epoch(samples.begin(), samples.begin()+nb_sample, allow_node_creation);
-                        }
-                        mesh.draw(subImg);
-//                        nb_frame++;
-//                        if(nb_frame == 150)
-//                            allow_node_creation = false;
-                    }
+                    tracker.newFrame(samples.begin(), samples.end());
+                    tracker.draw(subImg, Display::MESH);
                 }
             } else {
                 r.stopSelecting = false;

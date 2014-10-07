@@ -127,6 +127,9 @@ public:
             }
         }
 
+        if(boost::num_vertices(m_graph) == 0)
+            return;
+
         vp = boost::vertices(m_graph);
         vertex_descriptor max_ver = *vp.first;
         vertex_descriptor min_ver = *vp.first;
@@ -241,11 +244,11 @@ public:
         std::pair<vertex_iter, vertex_iter> vp;
         for (vp = boost::vertices(m_graph); vp.first != vp.second; ++vp.first){
             cv::Scalar color = cv::Scalar(255, 180, 0);
-            if(boost::out_degree(*vp.first, m_graph) < 4){
+            if(boost::out_degree(*vp.first, m_graph) < 5){
                 bool next_to_palm = false;
                 std::pair<adjacency_iterator, adjacency_iterator> neighboors;
                 for (neighboors = boost::adjacent_vertices(*vp.first, m_graph); neighboors.first != neighboors.second; ++neighboors.first){
-                    if(boost::out_degree(*neighboors.first, m_graph) >= 4){
+                    if(boost::out_degree(*neighboors.first, m_graph) >= 5){
                         next_to_palm = true;
                         break;
                     }
@@ -282,7 +285,9 @@ private:
 
         // Used whenever we need to iterate through the vertices
         std::pair<vertex_iter, vertex_iter> vp;
+        std::pair<adjacency_iterator, adjacency_iterator> nei;
         vertex_descriptor closest, second_closest;
+
         float d1 = std::numeric_limits<float>::infinity();
         float d2 = std::numeric_limits<float>::infinity();
 
@@ -299,42 +304,71 @@ private:
             }
         }
 
-        win_map[closest] = true;
-        error_map[closest] += d1;
-
-        edge_descriptor ed;
-        bool exist;
-        boost::tie(ed, exist) = boost::edge(closest, second_closest, m_graph);
-        if(!exist){
-            boost::tie(ed, exist) = boost::add_edge(closest, second_closest, m_graph);
-        }
-        age_map[ed] = 0;
-
-        std::pair<out_edge_iterator, out_edge_iterator> ep = boost::out_edges(closest, m_graph);
-        out_edge_iterator nextE;
-        for(nextE = ep.first; ep.first != ep.second ; ep.first = nextE){
-            ++nextE;
-            ++age_map[*ep.first];
-            if(age_map[*ep.first] >= m_maxAge){
-                boost::remove_edge(ep.first, m_graph);
+        // if the sample really is to far away, don't move and just create two nodes near the sample
+        float maxD = 15;
+        for (nei = boost::adjacent_vertices(closest, m_graph); nei.first != nei.second; ++nei.first){
+            float d = dist(pos_map[closest], pos_map[*nei.first]);
+            if(d>maxD){
+                maxD = d;
             }
         }
-//        boost::remove_out_edge_if(closest,
-//                                  [this](edge_descriptor &e){
-//                                      return this->m_graph[e].age >= this->m_maxAge;
-//                                  },
-//                                  m_graph);
 
-        float x, y;
-        boost::tie(x,y) = pos_map[closest];
-        pos_map[closest].first += m_alpha1 * (position.first - x);
-        pos_map[closest].second += m_alpha1 * (position.second - y);
+        if(d1>3*maxD || d2>3.5*maxD){
+            vertex_descriptor add1 = boost::add_vertex(m_graph);
+            error_map[add1] = maxD;
+            win_map[add1] = true;
+            pos_map[add1] = position;
+            vertex_descriptor add2 = boost::add_vertex(m_graph);
+            error_map[add2] = 0;
+            win_map[add2] = false;
+            pos_map[add2] = position;
 
-        std::pair<adjacency_iterator, adjacency_iterator> nei;
-        for (nei = boost::adjacent_vertices(closest, m_graph); nei.first != nei.second; ++nei.first){
-            boost::tie(x,y) = pos_map[*nei.first];
-            pos_map[*nei.first].first += m_alpha2 * (position.first - x);
-            pos_map[*nei.first].second += m_alpha2 * (position.second - y);
+            pos_map[add1].second += maxD/2;
+            pos_map[add2].second -= maxD/2;
+
+            edge_descriptor ed;
+            bool exist;
+            boost::tie(ed, exist) = boost::add_edge(add1, add2, m_graph);
+            if(exist)
+                age_map[ed] = 0;
+        } else {
+
+            win_map[closest] = true;
+            error_map[closest] += d1;
+
+            edge_descriptor ed;
+            bool exist;
+            boost::tie(ed, exist) = boost::edge(closest, second_closest, m_graph);
+            if(!exist){
+                boost::tie(ed, exist) = boost::add_edge(closest, second_closest, m_graph);
+            }
+            age_map[ed] = 0;
+
+            std::pair<out_edge_iterator, out_edge_iterator> ep = boost::out_edges(closest, m_graph);
+            out_edge_iterator nextE;
+            for(nextE = ep.first; ep.first != ep.second ; ep.first = nextE){
+                ++nextE;
+                ++age_map[*ep.first];
+                if(age_map[*ep.first] >= m_maxAge){
+                    boost::remove_edge(ep.first, m_graph);
+                }
+            }
+    //        boost::remove_out_edge_if(closest,
+    //                                  [this](edge_descriptor &e){
+    //                                      return this->m_graph[e].age >= this->m_maxAge;
+    //                                  },
+    //                                  m_graph);
+
+            float x, y;
+            boost::tie(x,y) = pos_map[closest];
+            pos_map[closest].first += m_alpha1 * (position.first - x);
+            pos_map[closest].second += m_alpha1 * (position.second - y);
+
+            for (nei = boost::adjacent_vertices(closest, m_graph); nei.first != nei.second; ++nei.first){
+                boost::tie(x,y) = pos_map[*nei.first];
+                pos_map[*nei.first].first += m_alpha2 * (position.first - x);
+                pos_map[*nei.first].second += m_alpha2 * (position.second - y);
+            }
         }
     }
 
