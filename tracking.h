@@ -1,6 +1,8 @@
 #ifndef TRACKING_H
 #define TRACKING_H
 
+#include <unordered_map>
+
 #include "gngt.h"
 
 enum Display {
@@ -30,10 +32,7 @@ public:
 
     }
 
-    void draw(cv::Mat &img, Display mode){
-        if(m_to_draw)
-            m_mesh->draw(img);
-    }
+    void draw(cv::Mat &img, Display mode);
 
     std::pair<float, float> getPalmCenter(){
         return m_palm_center;
@@ -46,12 +45,19 @@ public:
 private:
     void updateFeatures();
 
+    void findBiggestConectedComponent();
+    void findFingerNodes();
+    void countFingers();
+    void findPalmCenter();
+
     // Features tracked by the tracker
     std::pair<float,float> m_palm_center;
     int m_nb_finger;
 
     // GNG_T graph
     Gngt* m_mesh;
+    std::unordered_map<Gngt::vertex_descriptor, int> connected_components_map;
+    int m_biggest_comp;
 
     // Parameters
     int m_nb_epoch;

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
+#include <boost/property_map/property_map.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -34,7 +35,7 @@ public:
     typedef boost::property<vertex_error_t, float,
                 boost::property<vertex_pos_t, std::pair<float, float>,
                     boost::property<vertex_win_t, bool,
-                        boost::property<vertex_finger_t, bool> > > > VertexProperties;
+                        boost::property<vertex_finger_t, bool > > > > VertexProperties;
 
 /*
     struct EdgeProperties {
@@ -267,6 +268,10 @@ public:
                        cv::Point(pos_map[*vp.first].first, pos_map[*vp.first].second),
                        3, color, -1);
         }
+    }
+
+    Graph &getGraph(void){
+        return m_graph;
     }
 
 private:
