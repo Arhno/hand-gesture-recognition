@@ -158,5 +158,10 @@ void Tracker::draw(cv::Mat &img, Display mode){
                            3, color, -1);
             }
         }
+
+        // Draw palm center
+        cv::circle(img,
+                   cv::Point(m_palm_center.first, m_palm_center.second),
+                   10, cv::Scalar(0, 200, 0), -1);
     }
 }
