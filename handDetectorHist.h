@@ -98,10 +98,11 @@ public:
                     std::vector<std::vector<cv::Point> > contours;
                     std::vector<cv::Vec4i> hierarchy;
                     cv::findContours( hand, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
+                    int s = findBiggestContour(contours);
 
                     hand = cv::Scalar(0);
 
-                    cv::drawContours(hand, contours, -1, cv::Scalar(255), -1);
+                    cv::drawContours(hand, contours, s, cv::Scalar(255), -1);
 
                     cv::morphologyEx(hand, hand, cv::MORPH_ERODE, elementDilate);
 
@@ -146,6 +147,18 @@ public:
 
 private:
     Region r;
+
+    int findBiggestContour(std::vector<std::vector<cv::Point> > contours){
+        int indexOfBiggestContour = -1;
+        int sizeOfBiggestContour = 0;
+        for (int i = 0; i < contours.size(); i++){
+            if(contours[i].size() > sizeOfBiggestContour){
+                sizeOfBiggestContour = contours[i].size();
+                indexOfBiggestContour = i;
+            }
+        }
+        return indexOfBiggestContour;
+    }
 };
 
 #endif // HAND_DETECTOR_HIST_H

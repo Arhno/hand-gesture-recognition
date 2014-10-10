@@ -216,12 +216,6 @@ void Tracker::countFingers(){
 
     m_finger_center.clear();
     m_finger_center.reserve(m_nb_finger);
-    m_finger_center_normalized.clear();
-    m_finger_center_normalized.reserve(m_nb_finger);
-    fingerDistances.clear();
-    fingerDistances.reserve(m_nb_finger);
-    fingerAngles.clear();
-    fingerAngles.reserve(m_nb_finger);
     
     m_nb_finger = 0;
     for(int i=0 ; i<components.size() ; ++i){
@@ -261,25 +255,28 @@ void Tracker::countFingers(){
 }
 
 void Tracker::normalizeFingerCenters(){
+    m_finger_center_normalized.resize(m_nb_finger);
     for(int i=0 ; i<m_finger_center.size() ; ++i){
-        m_finger_center_normalized[i].first = (m_finger_center[i].first - m_palm_center.first);
-        m_finger_center_normalized[i].second = (m_finger_center[i].first - m_palm_center.first);
+        m_finger_center_normalized[i].first = (m_finger_center[i].first - m_palm_center.first)/m_palm_stds.first;
+        m_finger_center_normalized[i].second = (m_finger_center[i].second - m_palm_center.second)/m_palm_stds.first;
     }
 }
 
 void Tracker::computeAngles(){
-    for(int i=0 ; i<m_finger_center.size() ; ++i){
+    fingerAngles.resize(m_nb_finger);
+    for(int i=0 ; i<m_finger_center_normalized.size() ; ++i){
         float dist1,dist2;
-        dist1 = (m_finger_center[i].first - m_palm_center.first);
-        dist2 = (m_palm_center.second - m_finger_center[i].second);
+        dist1 = m_finger_center_normalized[i].first;
+        dist2 = -m_finger_center_normalized[i].second;
         fingerAngles[i] = atan(dist1/dist2) * 180/PI;
         std::cout << "Angles: " << fingerAngles[i] << std::endl;
     }
 }
 
 void Tracker::computeDistances(){
-    for(int i=0 ; i<m_finger_center.size(); ++i){
-        fingerDistances[i] = (m_finger_center[i].first - m_palm_center.first);
+    fingerDistances.resize(m_nb_finger);
+    for(int i=0 ; i<m_finger_center_normalized.size(); ++i){
+        fingerDistances[i] = m_finger_center_normalized[i].first;
         std::cout << "Distance: " << fingerDistances[i] << std::endl;
     }
 }
