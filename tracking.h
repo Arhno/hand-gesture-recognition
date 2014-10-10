@@ -60,6 +60,9 @@ private:
     int m_nb_finger;
     std::vector<std::pair<float,float>> m_finger_center;
     std::vector<std::pair<float,float>> m_finger_center_normalized;
+    std::vector<float> fingerDistances;
+    std::vector<float> fingerAngles;
+
 
     // GNG_T graph
     Gngt* m_mesh;

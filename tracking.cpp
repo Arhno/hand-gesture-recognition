@@ -1,8 +1,11 @@
 #include "tracking.h"
 #include "unionfind.h"
-
+#include <vector>
 #include <fstream>
+#include <math.h>
 #include <boost/graph/connected_components.hpp>
+
+#define PI 3.14159265
 
 Tracker::Tracker(const std::string &param)
     : m_nb_finger(0),
@@ -44,6 +47,8 @@ void Tracker::updateFeatures(){
     countFingers();
     computeStds();
     normalizeFingerCenters();
+    computeAngles();
+    computeDistances();
 }
 
 void Tracker::findBiggestConectedComponent(){
@@ -66,7 +71,7 @@ void Tracker::findBiggestConectedComponent(){
         ++nb_elements[connected_components_map[*vp.first]];
     }
 
-    std::cout << "nb_components: " << num << std::endl;
+    std::cout << "components: " << num << std::endl;
     m_biggest_comp = 0;
     int maxNb = 0;
     for(int i=0 ; i<num ; ++i){
@@ -172,15 +177,13 @@ void Tracker::computeStds(){
              * Compute here the std of the palm (x-drirection)
              * */
             ++ nb_nodes_in_palm;
-            m_palm_std.first += (pos_map[*vp.first].first - m_palm_center.first) *  (pos_map[*vp.first].first - m_palm_center.first);
-            m_palm_std.second += (pos_map[*vp.first].second - m_palm_center.second) *  (pos_map[*vp.first].second - m_palm_center.second);
+            m_palm_stds.first += (pos_map[*vp.first].first - m_palm_center.first) *  (pos_map[*vp.first].first - m_palm_center.first);
+            m_palm_stds.second += (pos_map[*vp.first].second - m_palm_center.second) *  (pos_map[*vp.first].second - m_palm_center.second);
         }
     }
     if(nb_nodes_in_palm>0){
-        m_palm_stds.first = sqrt(m_palm_stds.first);
-        m_palm_stds.first /= nb_nodes_in_palm;
-        m_palm_stds.second = sqrt(m_palm_stds.second);
-        m_palm_stds.second /= nb_nodes_in_palm;
+        m_palm_stds.first = sqrt(m_palm_stds.first/nb_nodes_in_palm);
+        m_palm_stds.second = sqrt(m_palm_stds.second/nb_nodes_in_palm);
     }
 }
 
@@ -213,7 +216,13 @@ void Tracker::countFingers(){
 
     m_finger_center.clear();
     m_finger_center.reserve(m_nb_finger);
-
+    m_finger_center_normalized.clear();
+    m_finger_center_normalized.reserve(m_nb_finger);
+    fingerDistances.clear();
+    fingerDistances.reserve(m_nb_finger);
+    fingerAngles.clear();
+    fingerAngles.reserve(m_nb_finger);
+    
     m_nb_finger = 0;
     for(int i=0 ; i<components.size() ; ++i){
         if(components[i].size() >= 3){
@@ -234,20 +243,45 @@ void Tracker::countFingers(){
             }
         }
     }
-
+    
+    for(int i=0 ; i<m_finger_center.size() ; ++i){
+        for(int j =0; j<m_finger_center.size(); j++)
+        {
+            if (m_finger_center[i].first > m_finger_center[j].first) {
+                int temp = m_finger_center[i].first;
+                m_finger_center[i].first=m_finger_center[j].first;
+                m_finger_center[j].first=temp;
+                temp = m_finger_center[i].second;
+                m_finger_center[i].second=m_finger_center[j].second;
+                m_finger_center[j].second=temp;
+            }
+        }
+    }
     //std::cout << "after: " << m_nb_finger << std::endl;
 }
 
-void Tracher::normalizeFingerCenters(){
-
+void Tracker::normalizeFingerCenters(){
+    for(int i=0 ; i<m_finger_center.size() ; ++i){
+        m_finger_center_normalized[i].first = (m_finger_center[i].first - m_palm_center.first);
+        m_finger_center_normalized[i].second = (m_finger_center[i].first - m_palm_center.first);
+    }
 }
 
-void Tracher::computeAngles(){
-
+void Tracker::computeAngles(){
+    for(int i=0 ; i<m_finger_center.size() ; ++i){
+        float dist1,dist2;
+        dist1 = (m_finger_center[i].first - m_palm_center.first);
+        dist2 = (m_palm_center.second - m_finger_center[i].second);
+        fingerAngles[i] = atan(dist1/dist2) * 180/PI;
+        std::cout << "Angles: " << fingerAngles[i] << std::endl;
+    }
 }
 
-void Tracher::computeDistances(){
-
+void Tracker::computeDistances(){
+    for(int i=0 ; i<m_finger_center.size(); ++i){
+        fingerDistances[i] = (m_finger_center[i].first - m_palm_center.first);
+        std::cout << "Distance: " << fingerDistances[i] << std::endl;
+    }
 }
 
 void Tracker::draw(cv::Mat &img, Display mode){
