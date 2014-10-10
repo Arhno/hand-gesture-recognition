@@ -50,6 +50,8 @@ public:
 
     cv::Mat findHand(cv::Mat &input)
     {
+        cv::GaussianBlur( input, input, cv::Size(15,15), 0, 0, cv::BORDER_DEFAULT );
+
         // histogram parameters
         int Crbins = 128, Cbbins = 128;
         int histSize[] = {Crbins, Cbbins};
@@ -71,6 +73,37 @@ public:
                     cv::calcBackProject(&YCrCb, 1, channels, *(r.hist), hand, ranges);
 
                     cv::inRange(hand,cv::Scalar(200),cv::Scalar(256),hand);
+
+                    int ro = 1;
+                    cv::Mat elementOpen =
+                            cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                      cv::Size(2*ro+1, 2*ro+1),
+                                                      cv::Point(ro, ro) );
+                    cv::morphologyEx(hand, hand, cv::MORPH_OPEN, elementOpen);
+
+                    int rc = 6;
+                    cv::Mat elementClose =
+                            cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                      cv::Size(2*rc+1, 2*rc+1),
+                                                      cv::Point(rc, rc) );
+                    cv::morphologyEx(hand, hand, cv::MORPH_CLOSE, elementClose);
+
+                    int rd = 4;
+                    cv::Mat elementDilate =
+                            cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                      cv::Size(2*rd+1, 2*rd+1),
+                                                      cv::Point(rd, rd) );
+                    cv::morphologyEx(hand, hand, cv::MORPH_DILATE, elementDilate);
+
+                    std::vector<std::vector<cv::Point> > contours;
+                    std::vector<cv::Vec4i> hierarchy;
+                    cv::findContours( hand, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
+
+                    hand = cv::Scalar(0);
+
+                    cv::drawContours(hand, contours, -1, cv::Scalar(255), -1);
+
+                    cv::morphologyEx(hand, hand, cv::MORPH_ERODE, elementDilate);
 
 //                    // -- Remove the face --
 //                    cv::Mat grayscaleFrame;

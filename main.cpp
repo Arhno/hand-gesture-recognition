@@ -17,7 +17,7 @@ int main(int argc, char* argv[]){
     }
 
     cv::namedWindow("track", CV_WINDOW_NORMAL);
-    cv::namedWindow("bin", CV_WINDOW_NORMAL);
+    cv::namedWindow("skin", CV_WINDOW_NORMAL);
     cv::VideoCapture vc(0);
     int h = 600;
     int w = 600;

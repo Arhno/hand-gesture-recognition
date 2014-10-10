@@ -53,6 +53,7 @@ private:
     // Features tracked by the tracker
     std::pair<float,float> m_palm_center;
     int m_nb_finger;
+    std::vector<std::pair<float,float>> m_finger_center;
 
     // GNG_T graph
     Gngt* m_mesh;

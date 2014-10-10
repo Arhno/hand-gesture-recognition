@@ -1,4 +1,5 @@
 #include "tracking.h"
+#include "unionfind.h"
 
 #include <fstream>
 #include <boost/graph/connected_components.hpp>
@@ -79,20 +80,22 @@ void Tracker::findFingerNodes(){
     // Retrieve the property map used in the method
     Gngt::finger_map_t finger_map = boost::get(vertex_finger, g);
 
+    int nb_neighboor = 2;
+
     std::pair<Gngt::vertex_iter, Gngt::vertex_iter> vp;
     for (vp = boost::vertices(g); vp.first != vp.second; ++vp.first){
         if(connected_components_map[*vp.first] == m_biggest_comp){
             finger_map[*vp.first] = false;
-            if(boost::out_degree(*vp.first, g) < 5){
+            if(boost::out_degree(*vp.first, g) <= nb_neighboor){
                 bool next_to_palm = false;
                 std::pair<Gngt::adjacency_iterator, Gngt::adjacency_iterator> neighboors;
                 for (neighboors = boost::adjacent_vertices(*vp.first, g); neighboors.first != neighboors.second; ++neighboors.first){
-                    if(boost::out_degree(*neighboors.first, g) >= 5){
+                    if(boost::out_degree(*neighboors.first, g) > nb_neighboor){
                         next_to_palm = true;
                         break;
                     }
                 }
-                if(!next_to_palm)
+                //if(!next_to_palm)
                     finger_map[*vp.first] = true;
             }
         }
@@ -103,6 +106,7 @@ void Tracker::findPalmCenter(){
     // Retrieve the graph
     Gngt::Graph &g = m_mesh->getGraph();
     Gngt::finger_map_t finger_map = boost::get(vertex_finger, g);
+    Gngt::pos_map_t pos_map = boost::get(vertex_pos, g);
 
     std::pair<Gngt::vertex_iter, Gngt::vertex_iter> vp;
     for (vp = boost::vertices(g); vp.first != vp.second; ++vp.first){
@@ -117,7 +121,57 @@ void Tracker::findPalmCenter(){
 }
 
 void Tracker::countFingers(){
+    UnionFind<Gngt::vertex_descriptor> u;
 
+    // Retrieve the graph
+    Gngt::Graph &g = m_mesh->getGraph();
+    Gngt::finger_map_t finger_map = boost::get(vertex_finger, g);
+    Gngt::pos_map_t pos_map = boost::get(vertex_pos, g);
+
+    std::pair<Gngt::vertex_iter, Gngt::vertex_iter> vp;
+    for (vp = boost::vertices(g); vp.first != vp.second; ++vp.first){
+        if(connected_components_map[*vp.first] == m_biggest_comp && finger_map[*vp.first]){
+            u.unite(*vp.first, *vp.first);
+            std::pair<Gngt::adjacency_iterator, Gngt::adjacency_iterator> neighboors;
+            for (neighboors = boost::adjacent_vertices(*vp.first, g);
+                 neighboors.first != neighboors.second;
+                 ++neighboors.first){
+                if(finger_map[*neighboors.first]){
+                    u.unite(*vp.first, *neighboors.first);
+                }
+            }
+        }
+    }
+
+    std::vector<std::vector<Gngt::vertex_descriptor>> components;
+    m_nb_finger = u.connectedComponents(components);
+    //std::cout << "before: " << m_nb_finger << std::endl;
+
+    m_finger_center.clear();
+    m_finger_center.reserve(m_nb_finger);
+
+    m_nb_finger = 0;
+    for(int i=0 ; i<components.size() ; ++i){
+        if(components[i].size() >= 3){
+
+            m_finger_center.push_back(std::make_pair(0.0f, 0.0f));
+            for(int j=0 ; j<components[i].size() ; ++j){
+                m_finger_center.back().first += pos_map[components[i][j]].first;
+                m_finger_center.back().second += pos_map[components[i][j]].second;
+            }
+            m_finger_center.back().first /= components[i].size();
+            m_finger_center.back().second /= components[i].size();
+
+            ++m_nb_finger;
+        } else {
+            // Erase the false fingers
+            for(int j=0 ; j<components[i].size() ; ++j){
+                finger_map[components[i][j]] = false;
+            }
+        }
+    }
+
+    //std::cout << "after: " << m_nb_finger << std::endl;
 }
 
 void Tracker::draw(cv::Mat &img, Display mode){
@@ -126,6 +180,13 @@ void Tracker::draw(cv::Mat &img, Display mode){
         // Retrieve the property map used in the method
         Gngt::pos_map_t pos_map = boost::get(vertex_pos, g);
         Gngt::finger_map_t finger_map = boost::get(vertex_finger, g);
+
+        // Draw finger centers
+        for(int i=0 ; i<m_finger_center.size() ; ++i){
+            cv::circle(img,
+                       cv::Point(m_finger_center[i].first, m_finger_center[i].second),
+                       7, cv::Scalar(0, 200, 200), -1);
+        }
 
         // Draw edges
         std::pair<Gngt::edge_iter, Gngt::edge_iter> ep;
@@ -163,5 +224,6 @@ void Tracker::draw(cv::Mat &img, Display mode){
         cv::circle(img,
                    cv::Point(m_palm_center.first, m_palm_center.second),
                    10, cv::Scalar(0, 200, 0), -1);
+
     }
 }
