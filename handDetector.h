@@ -18,15 +18,15 @@ public:
     HandDetector(void){
         Y_MIN  = 0;
         Y_MAX  = 185;
-        Cr_MIN = 131;
-        Cr_MAX = 185;
-        Cb_MIN = 80;
-        Cb_MAX = 135;
+        Cr_MIN = 143;
+        Cr_MAX = 182;
+        Cb_MIN = 93;
+        Cb_MAX = 132;
     }
 
     ~HandDetector(void){}
 
-    cv::Mat findHand(cv::Mat input)
+    cv::Mat findHand(cv::Mat &input)
     {
         cv::Mat hand;
 
@@ -48,15 +48,44 @@ public:
         //find faces and store them in the vector array
         face_cascade.detectMultiScale(grayscaleFrame, faces, 1.1, 3, /*CV_HAAR_FIND_BIGGEST_OBJECT|*/CV_HAAR_SCALE_IMAGE, cv::Size(30,30));
 
-        //draw a rectangle for all found faces in the vector array on the original image
-        for(int i = 0; i < faces.size(); i++)
-        {
-            cv::Point pt1(faces[i].x + faces[i].width+10, faces[i].y + faces[i].height+150);
-            cv::Point pt2(faces[i].x -7 , faces[i].y - 7 );
-            cv::rectangle(hand, pt1, pt2, cv::Scalar(0), CV_FILLED, 8, 0);
-        }
+//        //draw a rectangle for all found faces in the vector array on the original image
+//        for(int i = 0; i < faces.size(); i++)
+//        {
+//            cv::Point pt1(faces[i].x + faces[i].width+10, faces[i].y + faces[i].height+150);
+//            cv::Point pt2(faces[i].x -7 , faces[i].y - 7 );
+//            cv::rectangle(hand, pt1, pt2, cv::Scalar(0), CV_FILLED, 8, 0);
+//        }
+//        for(int i = 0; i < faces.size(); i++)
+//        {
+//            cv::Point pt1(faces[i].x + faces[i].width+10, faces[i].y + faces[i].height+150);
+//            cv::Point pt2(faces[i].x -7 , faces[i].y - 7 );
+//            cv::rectangle(input, pt1, pt2, cv::Scalar(0), CV_FILLED, 8, 0);
+//        }
+
+        std::vector<std::vector<cv::Point> > contours;
+        std::vector<cv::Vec4i> hierarchy;
+
+        cv::findContours( hand, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
+        int s = findBiggestContour(contours);
+
+        hand = cv::Scalar(0);
+
+        cv::drawContours( hand, contours, s, cv::Scalar(255), -1, 8, hierarchy, 0, cv::Point() );
 
         return hand;
+    }
+
+private:
+    int findBiggestContour(std::vector<std::vector<cv::Point> > contours){
+        int indexOfBiggestContour = -1;
+        int sizeOfBiggestContour = 0;
+        for (int i = 0; i < contours.size(); i++){
+            if(contours[i].size() > sizeOfBiggestContour){
+                sizeOfBiggestContour = contours[i].size();
+                indexOfBiggestContour = i;
+            }
+        }
+        return indexOfBiggestContour;
     }
 
 };

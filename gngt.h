@@ -70,7 +70,8 @@ public:
         : m_t(target),
           m_alpha1(fastRate),
           m_alpha2(slowRate),
-          m_maxAge(maxAge)
+          m_maxAge(maxAge),
+          m_frozen(false)
     {}
 
     template<typename Iterator>
@@ -105,120 +106,124 @@ public:
             ++begin;
         }
 
-        // Remove vertices that didn't win this epoch and the ones without edges
-        // In the mean time, compute the mean error and the vertices with the biggest
-        // and smallest error
-        vp = boost::vertices(m_graph);
-        vertex_iter next;
-        for (next = vp.first; vp.first != vp.second; vp.first=next){
-            ++next;
-            if(!win_map[*vp.first]){
-                //std::cout << win_map[*vp.first] << " - " << boost::out_degree(*vp.first, m_graph) << std::endl;
-                boost::clear_vertex(*vp.first, m_graph);
-                //std::cout << boost::out_degree(*vp.first, m_graph) << std::endl;
-                boost::remove_vertex(*vp.first, m_graph);
-            }
-        }
+        if(!m_frozen){
 
-        vp = boost::vertices(m_graph);
-        for (next = vp.first; vp.first != vp.second; vp.first=next){
-            ++next;
-            if(boost::out_degree(*vp.first, m_graph) == 0){
-                boost::remove_vertex(*vp.first, m_graph);
+            // Remove vertices that didn't win this epoch and the ones without edges
+            // In the mean time, compute the mean error and the vertices with the biggest
+            // and smallest error
+            vp = boost::vertices(m_graph);
+            vertex_iter next;
+            for (next = vp.first; vp.first != vp.second; vp.first=next){
+                ++next;
+                if(!win_map[*vp.first]){
+                    //std::cout << win_map[*vp.first] << " - " << boost::out_degree(*vp.first, m_graph) << std::endl;
+                    boost::clear_vertex(*vp.first, m_graph);
+                    //std::cout << boost::out_degree(*vp.first, m_graph) << std::endl;
+                    boost::remove_vertex(*vp.first, m_graph);
+                }
             }
-        }
 
-        if(boost::num_vertices(m_graph) == 0)
-            return;
-
-        vp = boost::vertices(m_graph);
-        vertex_descriptor max_ver = *vp.first;
-        vertex_descriptor min_ver = *vp.first;
-        float mean = 0;
-        float max = error_map[max_ver];
-        float min = error_map[min_ver];
-        for (; vp.first != vp.second; ++vp.first){
-            //std::cout << "has won: " << pos_map[*vp.first].first << " " << pos_map[*vp.first].second << std::endl;
-            float error = error_map[*vp.first];
-            mean += error;
-            if(error < min){
-                min = error;
-                min_ver = *vp.first;
+            vp = boost::vertices(m_graph);
+            for (next = vp.first; vp.first != vp.second; vp.first=next){
+                ++next;
+                if(boost::out_degree(*vp.first, m_graph) == 0){
+                    boost::remove_vertex(*vp.first, m_graph);
+                }
             }
-            if(error > max){
-                max = error;
-                max_ver = *vp.first;
-            }
-        }
-        mean /= boost::num_vertices(m_graph);
 
-        if(add_node){
-            // Adapt the number of vertices to get closer to the target
-            if(mean < m_t){
-                // to much accuracy, remove the vertex with the least error
-                boost::clear_vertex(min_ver, m_graph);
-                boost::remove_vertex(min_ver, m_graph);
-            } else {
-                // not enough accuracy, add a vertex where needed
-                max = 0;
-                vertex_descriptor max_neighbor;
-                std::pair<adjacency_iterator, adjacency_iterator> vp;
-                //std::cout << "max: " << pos_map[max_ver].first << ", " << pos_map[max_ver].second << std::endl;
-                bool neighborFound = false;
-                for (vp = boost::adjacent_vertices(max_ver, m_graph); vp.first != vp.second; ++vp.first){
-                    //std::cout << "5.3 " << std::endl;
-                    float error = error_map[*vp.first];
-                    //std::cout << "5.4 " << pos_map[*vp.first].first << " " << pos_map[*vp.first].second << std::endl;
-                    if(error > max){
-                        max = error;
-                        //std::cout << "neighbor found" << std::endl;
-                        neighborFound = true;
-                        max_neighbor = *vp.first;
+            if(boost::num_vertices(m_graph) == 0)
+                return;
+
+            vp = boost::vertices(m_graph);
+            vertex_descriptor max_ver = *vp.first;
+            vertex_descriptor min_ver = *vp.first;
+            float mean = 0;
+            float max = error_map[max_ver];
+            float min = error_map[min_ver];
+            for (; vp.first != vp.second; ++vp.first){
+                //std::cout << "has won: " << pos_map[*vp.first].first << " " << pos_map[*vp.first].second << std::endl;
+                float error = error_map[*vp.first];
+                mean += error;
+                if(error < min){
+                    min = error;
+                    min_ver = *vp.first;
+                }
+                if(error > max){
+                    max = error;
+                    max_ver = *vp.first;
+                }
+            }
+            mean /= boost::num_vertices(m_graph);
+
+            if(add_node){
+                // Adapt the number of vertices to get closer to the target
+                if(mean < m_t){
+                    // to much accuracy, remove the vertex with the least error
+                    boost::clear_vertex(min_ver, m_graph);
+                    boost::remove_vertex(min_ver, m_graph);
+                } else {
+                    // not enough accuracy, add a vertex where needed
+                    max = 0;
+                    vertex_descriptor max_neighbor;
+                    std::pair<adjacency_iterator, adjacency_iterator> vp;
+                    //std::cout << "max: " << pos_map[max_ver].first << ", " << pos_map[max_ver].second << std::endl;
+                    bool neighborFound = false;
+                    for (vp = boost::adjacent_vertices(max_ver, m_graph); vp.first != vp.second; ++vp.first){
+                        //std::cout << "5.3 " << std::endl;
+                        float error = error_map[*vp.first];
+                        //std::cout << "5.4 " << pos_map[*vp.first].first << " " << pos_map[*vp.first].second << std::endl;
+                        if(error > max){
+                            max = error;
+                            //std::cout << "neighbor found" << std::endl;
+                            neighborFound = true;
+                            max_neighbor = *vp.first;
+                        }
+                    }
+
+                    if(neighborFound){
+                        //std::cout << "neighbor pos (" << max_neighbor << "): " << pos_map[max_neighbor].first << " " << pos_map[max_neighbor].second << std::endl;
+
+
+                        //std::cout << "6" << std::endl;
+                        edge_descriptor edge_to_delete;
+                        bool edge_to_delete_exist;
+                        boost::tie(edge_to_delete, edge_to_delete_exist) = boost::edge(max_ver, max_neighbor, m_graph);
+                        if(edge_to_delete_exist)
+                            boost::remove_edge(max_ver, max_neighbor, m_graph);
+
+                        //std::cout << "neighbor pos 2 (" << max_neighbor << "): " << pos_map[max_neighbor].first << " " << pos_map[max_neighbor].second << std::endl;
+
+
+                        //std::cout << "7" << std::endl;
+                        float x1, x2, y1, y2;
+                        boost::tie(x1,y1) = pos_map[max_ver];
+                        boost::tie(x2,y2) = pos_map[max_neighbor];
+
+                        //std::cout << "8: " << x1 << " " << y1 << " " << x2 << " " << y2 << std::endl;
+                        vertex_descriptor vd = boost::add_vertex(m_graph);
+                        error_map[vd] = 0;
+                        win_map[vd] = false;
+                        pos_map[vd] = std::make_pair((x1+x2)/2, (y1+y2)/2);
+
+                        //std::cout << "9" << std::endl;
+                        edge_descriptor ed;
+                        //std::cout << "9'" << std::endl;
+                        bool exist;
+                        //std::cout << "9''" << std::endl;
+                        boost::tie(ed, exist) = boost::add_edge(max_ver, vd, m_graph);
+                        //std::cout << "9'''" << std::endl;
+                        if(exist)
+                            age_map[ed] = 0;
+                        //std::cout << "9''''" << std::endl;
+                        boost::tie(ed, exist) = boost::add_edge(max_neighbor, vd, m_graph);
+                        //std::cout << "9'''''" << std::endl;
+                        if(exist)
+                            age_map[ed] = 0;
+                        //std::cout << "10" << std::endl;
                     }
                 }
-
-                if(neighborFound){
-                    //std::cout << "neighbor pos (" << max_neighbor << "): " << pos_map[max_neighbor].first << " " << pos_map[max_neighbor].second << std::endl;
-
-
-                    //std::cout << "6" << std::endl;
-                    edge_descriptor edge_to_delete;
-                    bool edge_to_delete_exist;
-                    boost::tie(edge_to_delete, edge_to_delete_exist) = boost::edge(max_ver, max_neighbor, m_graph);
-                    if(edge_to_delete_exist)
-                        boost::remove_edge(max_ver, max_neighbor, m_graph);
-
-                    //std::cout << "neighbor pos 2 (" << max_neighbor << "): " << pos_map[max_neighbor].first << " " << pos_map[max_neighbor].second << std::endl;
-
-
-                    //std::cout << "7" << std::endl;
-                    float x1, x2, y1, y2;
-                    boost::tie(x1,y1) = pos_map[max_ver];
-                    boost::tie(x2,y2) = pos_map[max_neighbor];
-
-                    //std::cout << "8: " << x1 << " " << y1 << " " << x2 << " " << y2 << std::endl;
-                    vertex_descriptor vd = boost::add_vertex(m_graph);
-                    error_map[vd] = 0;
-                    win_map[vd] = false;
-                    pos_map[vd] = std::make_pair((x1+x2)/2, (y1+y2)/2);
-
-                    //std::cout << "9" << std::endl;
-                    edge_descriptor ed;
-                    //std::cout << "9'" << std::endl;
-                    bool exist;
-                    //std::cout << "9''" << std::endl;
-                    boost::tie(ed, exist) = boost::add_edge(max_ver, vd, m_graph);
-                    //std::cout << "9'''" << std::endl;
-                    if(exist)
-                        age_map[ed] = 0;
-                    //std::cout << "9''''" << std::endl;
-                    boost::tie(ed, exist) = boost::add_edge(max_neighbor, vd, m_graph);
-                    //std::cout << "9'''''" << std::endl;
-                    if(exist)
-                        age_map[ed] = 0;
-                    //std::cout << "10" << std::endl;
-                }
             }
+
         }
     }
 
@@ -274,12 +279,21 @@ public:
         return m_graph;
     }
 
+    void freeze(bool freeze = true){
+        m_frozen = freeze;
+    }
+
+    bool is_frozen(void){
+        return m_frozen;
+    }
+
 private:
     Graph m_graph;
     float m_t;
     float m_alpha1;
     float m_alpha2;
     int m_maxAge;
+    bool m_frozen;
 
     void update(const std::pair<float, float> &position){
         // Retrieve the property map used in the method
@@ -319,23 +333,26 @@ private:
         }
 
         if(d1>3*maxD || d2>3.5*maxD){
-            vertex_descriptor add1 = boost::add_vertex(m_graph);
-            error_map[add1] = maxD;
-            win_map[add1] = true;
-            pos_map[add1] = position;
-            vertex_descriptor add2 = boost::add_vertex(m_graph);
-            error_map[add2] = 0;
-            win_map[add2] = false;
-            pos_map[add2] = position;
+            // If the graph is frozen, don't do anything
+            if(!m_frozen){
+                vertex_descriptor add1 = boost::add_vertex(m_graph);
+                error_map[add1] = maxD;
+                win_map[add1] = true;
+                pos_map[add1] = position;
+                vertex_descriptor add2 = boost::add_vertex(m_graph);
+                error_map[add2] = 0;
+                win_map[add2] = false;
+                pos_map[add2] = position;
 
-            pos_map[add1].second += maxD/2;
-            pos_map[add2].second -= maxD/2;
+                pos_map[add1].second += maxD/2;
+                pos_map[add2].second -= maxD/2;
 
-            edge_descriptor ed;
-            bool exist;
-            boost::tie(ed, exist) = boost::add_edge(add1, add2, m_graph);
-            if(exist)
-                age_map[ed] = 0;
+                edge_descriptor ed;
+                bool exist;
+                boost::tie(ed, exist) = boost::add_edge(add1, add2, m_graph);
+                if(exist)
+                    age_map[ed] = 0;
+            }
         } else {
 
             win_map[closest] = true;
@@ -358,6 +375,7 @@ private:
                     boost::remove_edge(ep.first, m_graph);
                 }
             }
+
     //        boost::remove_out_edge_if(closest,
     //                                  [this](edge_descriptor &e){
     //                                      return this->m_graph[e].age >= this->m_maxAge;

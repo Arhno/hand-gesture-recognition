@@ -64,7 +64,7 @@ void Tracker::findBiggestConectedComponent(){
         ++nb_elements[connected_components_map[*vp.first]];
     }
 
-    //std::cout << "nb_components: " << num << std::endl;
+    std::cout << "nb_components: " << num << std::endl;
     m_biggest_comp = 0;
     int maxNb = 0;
     for(int i=0 ; i<num ; ++i){
@@ -73,9 +73,28 @@ void Tracker::findBiggestConectedComponent(){
             m_biggest_comp = i;
         }
     }
+
+    if(maxNb > 65 && !m_mesh->is_frozen()){
+        // Remove everything but the maximal connected componant
+        vp = boost::vertices(g);
+        Gngt::vertex_iter next;
+        for (next = vp.first; vp.first != vp.second; vp.first=next){
+            ++next;
+            if(connected_components_map[*vp.first] != m_biggest_comp){
+                boost::clear_vertex(*vp.first, g);
+                boost::remove_vertex(*vp.first, g);
+            }
+        }
+
+        // Freeze the number of nodes in the graph
+        m_mesh->freeze();
+    }
+
+    std::cout << "-> " << maxNb << std::endl ;
 }
 
 void Tracker::findFingerNodes(){
+
     Gngt::Graph &g = m_mesh->getGraph();
     // Retrieve the property map used in the method
     Gngt::finger_map_t finger_map = boost::get(vertex_finger, g);
@@ -85,7 +104,10 @@ void Tracker::findFingerNodes(){
     std::pair<Gngt::vertex_iter, Gngt::vertex_iter> vp;
     for (vp = boost::vertices(g); vp.first != vp.second; ++vp.first){
         if(connected_components_map[*vp.first] == m_biggest_comp){
-            finger_map[*vp.first] = false;
+
+            //if(!m_mesh->is_frozen())
+                finger_map[*vp.first] = false;
+
             if(boost::out_degree(*vp.first, g) <= nb_neighboor){
                 bool next_to_palm = false;
                 std::pair<Gngt::adjacency_iterator, Gngt::adjacency_iterator> neighboors;
@@ -108,6 +130,10 @@ void Tracker::findPalmCenter(){
     Gngt::finger_map_t finger_map = boost::get(vertex_finger, g);
     Gngt::pos_map_t pos_map = boost::get(vertex_pos, g);
 
+    int nb_nodes_in_palm = 0;
+    m_palm_center.first = 0;
+    m_palm_center.second = 0;
+
     std::pair<Gngt::vertex_iter, Gngt::vertex_iter> vp;
     for (vp = boost::vertices(g); vp.first != vp.second; ++vp.first){
         if(connected_components_map[*vp.first] == m_biggest_comp && !finger_map[*vp.first]){
@@ -116,7 +142,14 @@ void Tracker::findPalmCenter(){
              * Also compute the Covariance matrix and use it to detect when all the inger are connected
              * to adapt the center of the palm accordingly
              * */
+            ++ nb_nodes_in_palm;
+            m_palm_center.first += pos_map[*vp.first].first;
+            m_palm_center.second += pos_map[*vp.first].second;
         }
+    }
+    if(nb_nodes_in_palm>0){
+        m_palm_center.first /= nb_nodes_in_palm;
+        m_palm_center.second /= nb_nodes_in_palm;
     }
 }
 
@@ -225,5 +258,7 @@ void Tracker::draw(cv::Mat &img, Display mode){
                    cv::Point(m_palm_center.first, m_palm_center.second),
                    10, cv::Scalar(0, 200, 0), -1);
 
+    } else {
+        m_mesh->freeze(false);
     }
 }

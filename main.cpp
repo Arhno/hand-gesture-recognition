@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[]){
 
-    std::string paramFileName = "param.conf";
+    std::string paramFileName = "param.txt";
     if(argc > 1){
         paramFileName = std::string(argv[1]);
     }
@@ -22,8 +22,8 @@ int main(int argc, char* argv[]){
     int h = 600;
     int w = 600;
 
-    HandDetectorHist myHandDetector("track");
-    //HandDetector myHandDetector;
+    //HandDetectorHist myHandDetector("track");
+    HandDetector myHandDetector;
     Tracker tracker(paramFileName);
 
     std::vector<std::pair<float, float>> samples;
