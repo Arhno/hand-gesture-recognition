@@ -49,11 +49,17 @@ private:
     void findFingerNodes();
     void countFingers();
     void findPalmCenter();
+    void computeStds();
+    void normalizeFingerCenters();
+    void computeAngles();
+    void computeDistances();
 
     // Features tracked by the tracker
     std::pair<float,float> m_palm_center;
+    std::pair<float,float> m_palm_stds;
     int m_nb_finger;
     std::vector<std::pair<float,float>> m_finger_center;
+    std::vector<std::pair<float,float>> m_finger_center_normalized;
 
     // GNG_T graph
     Gngt* m_mesh;

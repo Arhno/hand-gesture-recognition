@@ -42,6 +42,8 @@ void Tracker::updateFeatures(){
     // Now we can compute the features
     findPalmCenter();
     countFingers();
+    computeStds();
+    normalizeFingerCenters();
 }
 
 void Tracker::findBiggestConectedComponent(){
@@ -153,6 +155,35 @@ void Tracker::findPalmCenter(){
     }
 }
 
+void Tracker::computeStds(){
+    // Retrieve the graph
+    Gngt::Graph &g = m_mesh->getGraph();
+    Gngt::finger_map_t finger_map = boost::get(vertex_finger, g);
+    Gngt::pos_map_t pos_map = boost::get(vertex_pos, g);
+
+    int nb_nodes_in_palm = 0;
+    m_palm_stds.first = 0;
+    m_palm_stds.second = 0;
+
+    std::pair<Gngt::vertex_iter, Gngt::vertex_iter> vp;
+    for (vp = boost::vertices(g); vp.first != vp.second; ++vp.first){
+        if(connected_components_map[*vp.first] == m_biggest_comp && !finger_map[*vp.first]){
+            /* *
+             * Compute here the std of the palm (x-drirection)
+             * */
+            ++ nb_nodes_in_palm;
+            m_palm_std.first += (pos_map[*vp.first].first - m_palm_center.first) *  (pos_map[*vp.first].first - m_palm_center.first);
+            m_palm_std.second += (pos_map[*vp.first].second - m_palm_center.second) *  (pos_map[*vp.first].second - m_palm_center.second);
+        }
+    }
+    if(nb_nodes_in_palm>0){
+        m_palm_stds.first = sqrt(m_palm_stds.first);
+        m_palm_stds.first /= nb_nodes_in_palm;
+        m_palm_stds.second = sqrt(m_palm_stds.second);
+        m_palm_stds.second /= nb_nodes_in_palm;
+    }
+}
+
 void Tracker::countFingers(){
     UnionFind<Gngt::vertex_descriptor> u;
 
@@ -205,6 +236,18 @@ void Tracker::countFingers(){
     }
 
     //std::cout << "after: " << m_nb_finger << std::endl;
+}
+
+void Tracher::normalizeFingerCenters(){
+
+}
+
+void Tracher::computeAngles(){
+
+}
+
+void Tracher::computeDistances(){
+
 }
 
 void Tracker::draw(cv::Mat &img, Display mode){
