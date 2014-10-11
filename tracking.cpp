@@ -272,13 +272,20 @@ void Tracker::computeAngles(){
         std::cout << "Angles: " << fingerAngles[i] << std::endl;
     }
 }
-
+std::vector<float> Tracker::retvalue()
+{
+    return fingerAngles;
+}
 void Tracker::computeDistances(){
     fingerDistances.resize(m_nb_finger);
     for(int i=0 ; i<m_finger_center_normalized.size(); ++i){
         fingerDistances[i] = m_finger_center_normalized[i].first;
         std::cout << "Distance: " << fingerDistances[i] << std::endl;
     }
+}
+std::vector<float> Tracker::retvalue1()
+{
+    return fingerDistances;
 }
 
 void Tracker::draw(cv::Mat &img, Display mode){

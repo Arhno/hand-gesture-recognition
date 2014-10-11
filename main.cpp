@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <vector>
 #include <utility>
@@ -51,6 +52,22 @@ int main(int argc, char* argv[]){
         cv::imshow("track", subImg);
         cv::imshow("skin", binimg);
     }
-
+    std::vector<float> x= tracker.retvalue();
+    for (int d=0; d<x.size(); d++) {
+        printf("%f ",x[d]);
+    }
+    printf("\n");
+    std::vector<float> y= tracker.retvalue1();
+    for (int d=0; d<y.size(); d++) {
+        printf("%f ",y[d]);
+    }
+    std::ofstream myfile;
+    myfile.open("ab.csv",std::ios_base::app);
+    for (int d=0; d<x.size(); d++)
+    {
+        myfile<<x[d]<<","<<y[d]<<",";
+    }
+    myfile<<"\n";
+    myfile.close();
     return 0;
 }

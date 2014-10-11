@@ -12,6 +12,8 @@ enum Display {
 
 class Tracker {
 public:
+    std::vector<float> retvalue();
+    std::vector<float> retvalue1();
     Tracker(const std::string &param);
     ~Tracker();
 
@@ -53,7 +55,6 @@ private:
     void normalizeFingerCenters();
     void computeAngles();
     void computeDistances();
-
     // Features tracked by the tracker
     std::pair<float,float> m_palm_center;
     std::pair<float,float> m_palm_stds;
