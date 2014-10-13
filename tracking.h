@@ -17,8 +17,9 @@ public:
     Tracker(const std::string &param);
     ~Tracker();
 
+    // return true if the mesh is frozen
     template<class Iterator>
-    void newFrame(Iterator begin, Iterator end){
+    bool newFrame(Iterator begin, Iterator end){
         int nb_sample = m_sample_percent*(end-begin);
         if(nb_sample > m_min_nb_sample){
             for(int i=0 ; i<m_nb_epoch ; ++i){
@@ -32,6 +33,7 @@ public:
             m_to_draw = false;
         }
 
+        return m_mesh->is_frozen();
     }
 
     void draw(cv::Mat &img, Display mode);

@@ -81,7 +81,7 @@ void Tracker::findBiggestConectedComponent(){
         }
     }
 
-    if(maxNb > 65 && !m_mesh->is_frozen()){
+    if(maxNb > 60 && !m_mesh->is_frozen()){
         // Remove everything but the maximal connected componant
         vp = boost::vertices(g);
         Gngt::vertex_iter next;
@@ -219,7 +219,7 @@ void Tracker::countFingers(){
     
     m_nb_finger = 0;
     for(int i=0 ; i<components.size() ; ++i){
-        if(components[i].size() >= 3){
+        if(components[i].size() >= 2){
 
             m_finger_center.push_back(std::make_pair(0.0f, 0.0f));
             for(int j=0 ; j<components[i].size() ; ++j){
