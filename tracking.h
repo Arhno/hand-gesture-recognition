@@ -14,6 +14,11 @@ class Tracker {
 public:
     std::vector<float> retvalue();
     std::vector<float> retvalue1();
+
+    float getRatio(){
+        return m_palm_stds.second/m_palm_stds.first;
+    }
+
     Tracker(const std::string &param);
     ~Tracker();
 

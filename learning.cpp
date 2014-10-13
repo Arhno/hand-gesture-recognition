@@ -74,6 +74,7 @@ int main(int argc, char* argv[]){
         {
             myfile<<x[d]<<","<<y[d]<<",";
         }
+        myFile<<tracker.getRatio() ;
         myfile<<"\n";
 
 
