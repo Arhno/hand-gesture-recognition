@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <math.h>
 
 Gesture::Gesture(const std::string& line)
     : angles(0),
@@ -38,18 +39,27 @@ Gesture::Gesture(const Gesture &g)
 
 float Gesture::distFrom(const Gesture &g){
     // Compare only if the same number of fingers has been detected
-    if(g.angles.size() != angles.size()){
+
+
+//    for(int i=0;i<angles.size();i++){
+//        std::cout << "Angles : " << angles[i] << std::endl;
+//    }
+//    std::cout << std::endl;
+
+    if(g.angles.size() == angles.size()){
+        float sum=0;
+
+        for(int i=0;i<g.angles.size();i++){
+            sum = sum + fabs(g.angles[i] - angles[i]) + fabs(distances[i] - distances[i]);
+        }
+        sum = sum + fabs(g.ratio - ratio);
+        sum = sum/(g.angles.size()+1);
+        //std::cout << "Sum : " << sum << std::endl;
+        return sum;
+    }
+    else{
         return std::numeric_limits<float>::max();
     }
-
-    // ******
-    // TODO compute and return the distance using the angles, the distances and the ratio
-    // I think it might be a good idea to normalize the distance by divising by the number of finger + 1
-    // so that gestures with a lot of finger do not suffer of handicap
-
-    return 0;
-
-    // ******
 }
 
 void Gesture::extract(const std::string &fileName, std::vector<Gesture> &v)
