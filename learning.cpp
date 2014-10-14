@@ -67,6 +67,11 @@ int main(int argc, char* argv[]){
             c = cv::waitKey(5);
         } while(done_for < 5 && c!='n');
 
+
+        if(img.data == NULL){
+            break;
+        }
+
         std::vector<float> x = tracker.retvalue();
         std::vector<float> y = tracker.retvalue1();
 
@@ -74,14 +79,8 @@ int main(int argc, char* argv[]){
         {
             myfile<<x[d]<<","<<y[d]<<",";
         }
-        myFile<<tracker.getRatio() ;
+        myfile<<tracker.getRatio() ;
         myfile<<"\n";
-
-
-        if(img.data == NULL){
-            break;
-        }
-
 
         c = cv::waitKey(0);
     }while(c != 'q');
