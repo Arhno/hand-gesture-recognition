@@ -269,6 +269,10 @@ void Tracker::computeAngles(){
         dist1 = m_finger_center_normalized[i].first;
         dist2 = -m_finger_center_normalized[i].second;
         fingerAngles[i] = atan(dist1/dist2) * 180/PI;
+        if(fingerAngles[i]>80)
+            fingerAngles[i] = 80;
+        else if(fingerAngles[i]<-80)
+            fingerAngles[i] = -80;
         std::cout << "Angles: " << fingerAngles[i] << std::endl;
     }
 }
