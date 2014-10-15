@@ -42,14 +42,15 @@ float Gesture::distFrom(const Gesture &g){
         return std::numeric_limits<float>::max();
     }
 
-    // ******
-    // TODO compute and return the distance using the angles, the distances and the ratio
-    // I think it might be a good idea to normalize the distance by divising by the number of finger + 1
-    // so that gestures with a lot of finger do not suffer of handicap
+    float sum=0;
+    
+    for(int i=0;i<g.angles.size();i++){
+        sum = sum + fabs(g.angles[i] - angles[i]) + fabs(distances[i] - distances[i]);
+    }
+    sum = sum + fabs(g.ratio - ratio);
+    sum = sum/(g.angles.size()+1);
+    return sum;
 
-    return 0;
-
-    // ******
 }
 
 void Gesture::extract(const std::string &fileName, std::vector<Gesture> &v)
