@@ -46,6 +46,8 @@ You can compile the different program using:
  
 `make clean` erase the executables.
 
+We use the Boost graph library as well as opencv so you will need those library to be able to compile.
+
 ### Use the program
 
 After compilation there are multiple ways to run the above program:
