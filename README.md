@@ -50,18 +50,26 @@ You can compile the different program using:
 
 After compilation there are multiple ways to run the above program:
 
-1.  ./video
+1.  `./video`
+
     Two windows appear,'track' and 'skin'. In the 'track' window, perform the gesture, select a region of your skin(alternatively the code can also detect skin automatically), and press q.
-    ./classifier ToBeClassified.csv features1.csv features2.csv features3.csv features4.csv features5.csv features6.csv features7.csv features8.csv features9.csv
+    
+    `./classifier ToBeClassified.csv features1.csv features2.csv features3.csv features4.csv features5.csv features6.csv features7.csv features8.csv features9.csv`
+    
     This will give the output as which feature(predefined gesture), the gesture you performed most closely resembles.
 
-2. ./classifier Example.csv features1.csv features2.csv features3.csv features4.csv features5.csv features6.csv features7.csv features8.csv features9.csv
+2. `./classifier Example.csv features1.csv features2.csv features3.csv features4.csv features5.csv features6.csv features7.csv features8.csv features9.csv`
+
     The Example.csv already contains the features of a number of gestures that were performed by us, and the above command gives the output as the feature(predefined gesture) that most closely resembles the gestures in the Examples.csv file.
 
-3. ./recorders/recorder Trial
+3. `./recorders/recorder ./recorders/Trial`
+
     A window will appear called 'img'. Perform the various gestures you wish to identify and press 's' to select one frame for every gesture. Press q when you have completed all the gestures.
-    ./learning recorders/Trial
-    ./classifier recorders/Trail/features.csv features1.csv features2.csv features3.csv features4.csv features5.csv features6.csv features7.csv features8.csv features9.csv
+    
+    `./learning recorders/Trial`
+    
+    `./classifier recorders/Trail/features.csv features1.csv features2.csv features3.csv features4.csv features5.csv features6.csv features7.csv features8.csv features9.csv`
+    
     This will give the output as which features(predefined gestures), the gestures you performed most closely resemble.
     
 
