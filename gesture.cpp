@@ -39,27 +39,19 @@ Gesture::Gesture(const Gesture &g)
 
 float Gesture::distFrom(const Gesture &g){
     // Compare only if the same number of fingers has been detected
-
-
-//    for(int i=0;i<angles.size();i++){
-//        std::cout << "Angles : " << angles[i] << std::endl;
-//    }
-//    std::cout << std::endl;
-
-    if(g.angles.size() == angles.size()){
-        float sum=0;
-
-        for(int i=0;i<g.angles.size();i++){
-            sum = sum + fabs(g.angles[i] - angles[i]) + fabs(distances[i] - distances[i]);
-        }
-        sum = sum + fabs(g.ratio - ratio);
-        sum = sum/(g.angles.size()+1);
-        //std::cout << "Sum : " << sum << std::endl;
-        return sum;
-    }
-    else{
+    if(g.angles.size() != angles.size()){
         return std::numeric_limits<float>::max();
     }
+
+    float sum=0;
+    
+    for(int i=0;i<g.angles.size();i++){
+        sum = sum + fabs(g.angles[i] - angles[i]) + fabs(distances[i] - distances[i]);
+    }
+    sum = sum + fabs(g.ratio - ratio);
+    sum = sum/(g.angles.size()+1);
+    return sum;
+
 }
 
 void Gesture::extract(const std::string &fileName, std::vector<Gesture> &v)
